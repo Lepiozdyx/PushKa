@@ -1,77 +1,9 @@
 import SwiftUI
 
-@MainActor
-final class AppStateViewModel: ObservableObject {
-    
-    enum AppState {
-        case fetch
-        case supp
-        case final
-    }
-    
-    @Published private(set) var appState: AppState = .fetch
-    let webManager: NetworkManager
-    
-    private var timeoutTask: Task<Void, Never>?
-    private let maxLoadingTime: TimeInterval = 10.0
-    
-    init(webManager: NetworkManager = NetworkManager()) {
-        self.webManager = webManager
-    }
-    
-    func stateCheck() {
-        timeoutTask?.cancel()
-        
-        Task { @MainActor in
-            do {
-                if webManager.targetURL != nil {
-                    updateState(.supp)
-                    return
-                }
-                
-                let shouldShowWebView = try await webManager.checkInitialURL()
-                
-                if shouldShowWebView {
-                    updateState(.supp)
-                } else {
-                    updateState(.final)
-                }
-                
-            } catch {
-                updateState(.final)
-            }
-        }
-        
-        startTimeoutTask()
-    }
-    
-    private func updateState(_ newState: AppState) {
-        timeoutTask?.cancel()
-        timeoutTask = nil
-        
-        appState = newState
-    }
-    
-    private func startTimeoutTask() {
-        timeoutTask = Task { @MainActor in
-            do {
-                try await Task.sleep(nanoseconds: UInt64(maxLoadingTime * 1_000_000_000))
-                
-                if self.appState == .fetch {
-                    self.appState = .final
-                }
-            } catch {}
-        }
-    }
-    
-    deinit {
-        timeoutTask?.cancel()
-    }
-}
-
 struct RootView: View {
     
-    @StateObject private var state = AppStateViewModel()
+    @StateObject private var state = AppStateManager()
+    @StateObject private var fcmManager = FCMManager.shared
         
     var body: some View {
         Group {
@@ -82,8 +14,16 @@ struct RootView: View {
             case .supp:
                 if let url = state.webManager.targetURL {
                     WebViewManager(url: url, webManager: state.webManager)
+                } else if let fcmToken = fcmManager.fcmToken {
+                    WebViewManager(
+                        url: NetworkManager.getInitialURL(fcmToken: fcmToken),
+                        webManager: state.webManager
+                    )
                 } else {
-                    WebViewManager(url: NetworkManager.initialURL, webManager: state.webManager)
+                    WebViewManager(
+                        url: NetworkManager.initialURL,
+                        webManager: state.webManager
+                    )
                 }
                 
             case .final:
@@ -93,6 +33,18 @@ struct RootView: View {
         .onAppear {
             state.stateCheck()
         }
+        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("didReceiveRemoteNotification"))) { notification in
+            handlePushNotification(notification)
+        }
+    }
+    
+    private func handlePushNotification(_ notification: Notification) {
+        guard let userInfo = notification.userInfo else { return }
+        
+        print("🔔 Push notification received: \(userInfo)")
+        
+        // Здесь можно добавить логику обработки пуш-уведомлений
+        // Например, навигация к определенному экрану или обновление данных
     }
 }
 

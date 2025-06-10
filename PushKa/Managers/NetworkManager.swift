@@ -5,10 +5,33 @@ import SwiftUI
 class NetworkManager: ObservableObject {
     
     @Published private(set) var targetURL: URL?
-    static let initialURL = URL(string: "https://naskilagaming.top/log?page=test")!
     private let storage: UserDefaults
     private var didSaveURL = false
     private let requestTimeout: TimeInterval = 10.0
+    
+    static func isInitialURL(_ url: URL) -> Bool {
+        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: true),
+              components.host == "naskilagaming.top",
+              components.path == "/log",
+              let pageItem = components.queryItems?.first(where: { $0.name == "page" }),
+              pageItem.value == "test" else {
+            return false
+        }
+        return true
+    }
+    
+    /// Начальный URL для проверки при запуске приложения с FCM токеном
+    static func getInitialURL(fcmToken: String) -> URL {
+        var components = URLComponents(string: "https://naskilagaming.top/log")!
+        components.queryItems = [
+            URLQueryItem(name: "page", value: "test"),
+            URLQueryItem(name: "fcm", value: fcmToken)
+        ]
+        return components.url!
+    }
+    
+    /// Базовый URL без FCM токена (для обратной совместимости)
+    static let initialURL = URL(string: "https://naskilagaming.top/log?page=test")!
     
     init(storage: UserDefaults = .standard) {
         self.storage = storage
@@ -47,16 +70,26 @@ class NetworkManager: ObservableObject {
             return true
         }
         
+        if url.host?.contains("google.com") == true {
+            return true
+        }
+        
         return false
     }
     
     func checkInitialURL() async throws -> Bool {
+        // Ждем получения FCM токена
+        let fcmToken = await FCMManager.shared.waitForToken()
+        let initialURL = Self.getInitialURL(fcmToken: fcmToken)
+        
+        print("\n🌐 Request: GET \(initialURL)")
+        
         let configuration = URLSessionConfiguration.default
         configuration.timeoutIntervalForRequest = requestTimeout
         configuration.timeoutIntervalForResource = requestTimeout
         let session = URLSession(configuration: configuration)
         
-        var request = URLRequest(url: Self.initialURL)
+        var request = URLRequest(url: initialURL)
         request.setValue(getUAgent(forWebView: false), forHTTPHeaderField: "User-Agent")
         request.timeoutInterval = requestTimeout
         
@@ -64,16 +97,22 @@ class NetworkManager: ObservableObject {
             let (_, response) = try await session.data(for: request)
             
             guard let httpResponse = response as? HTTPURLResponse else {
+                print("❌ Invalid response type")
                 return false
             }
+            
+            print("📡 Response: [Status: \(httpResponse.statusCode)] \(initialURL)")
             
             if (400...599).contains(httpResponse.statusCode) {
+                print("❌ Server error: \(httpResponse.statusCode)")
                 return false
             }
             
+            print("✅ FCM token sent successfully: \(fcmToken)")
             return true
             
         } catch {
+            print("❌ Network error: \(error.localizedDescription)")
             throw error
         }
     }
@@ -133,13 +172,19 @@ struct WebViewManager: UIViewRepresentable {
                 return
             }
             
-            if finalURL != NetworkManager.initialURL {
+            if !NetworkManager.isInitialURL(finalURL) {
                 parent.webManager.checkURL(finalURL)
-            } else {}
+            } else {
+                print("Still on initial URL")
+            }
         }
         
-        func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {}
+        func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+            print("Navigation failed: \(error.localizedDescription)")
+        }
         
-        func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {}
+        func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+            print("Provisional navigation failed: \(error.localizedDescription)")
+        }
     }
 }
