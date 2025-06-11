@@ -4,8 +4,9 @@ import SwiftUI
 
 class NetworkManager: ObservableObject {
     
-    // MARK: - CONFIGURATION - CHANGE URL HERE
+    // MARK: - CHANGE URL HERE
     static let BASE_URL = "https://naskilagaming.top/log?page=test"
+    // MARK: - CHANGE URL HERE
     
     @Published private(set) var targetURL: URL?
     private let storage: UserDefaults

@@ -98,16 +98,10 @@ extension AppDelegate: MessagingDelegate {
         }
         
         print("🔥 FCM Token received: \(token)")
-        FCMManager.shared.setToken(token)
         
-        // Можно отправить токен на ваш сервер здесь
-        sendTokenToServer(token)
-    }
-    
-    private func sendTokenToServer(_ token: String) {
-        // Здесь можно добавить отправку токена на ваш сервер
-        // для таргетированных уведомлений
-        print("📤 Token ready to send to server: \(token)")
+        // Сохраняем токен в FCMManager
+        // Отправка на сервер происходит в NetworkManager.checkInitialURL()
+        FCMManager.shared.setToken(token)
     }
 }
 

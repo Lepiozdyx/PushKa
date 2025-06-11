@@ -51,11 +51,24 @@
 		FAEEE0DA2DF73365008813E7 /* Exceptions for "PushKa" folder in "PushKa" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				1DOCUMENTATION/2INTEGRATION_GUIDE.md,
+				1DOCUMENTATION/3API_REFERENCE.md,
 				Info.plist,
 			);
 			target = FAEEDD7D2DF72DD3008813E7 /* PushKa */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
+		FA2B73A92DF9CE7B007EF119 /* Exceptions for "PushKa" folder in "Compile Sources" phase from "PushKa" target */ = {
+			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
+			buildPhase = FAEEDD7A2DF72DD3008813E7 /* Sources */;
+			membershipExceptions = (
+				1DOCUMENTATION/2INTEGRATION_GUIDE.md,
+				1DOCUMENTATION/3API_REFERENCE.md,
+			);
+		};
+/* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		FA2B724C2DF88711007EF119 /* NotificationService */ = {
@@ -70,6 +83,7 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				FAEEE0DA2DF73365008813E7 /* Exceptions for "PushKa" folder in "PushKa" target */,
+				FA2B73A92DF9CE7B007EF119 /* Exceptions for "PushKa" folder in "Compile Sources" phase from "PushKa" target */,
 			);
 			path = PushKa;
 			sourceTree = "<group>";
