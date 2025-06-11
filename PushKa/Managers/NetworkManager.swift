@@ -4,17 +4,23 @@ import SwiftUI
 
 class NetworkManager: ObservableObject {
     
+    // MARK: - CONFIGURATION - CHANGE URL HERE
+    static let BASE_URL = "https://naskilagaming.top/log?page=test"
+    
     @Published private(set) var targetURL: URL?
     private let storage: UserDefaults
     private var didSaveURL = false
     private let requestTimeout: TimeInterval = 10.0
     
+    init(storage: UserDefaults = .standard) {
+        self.storage = storage
+        loadProvenURL()
+    }
+    
     static func isInitialURL(_ url: URL) -> Bool {
-        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: true),
-              components.host == "naskilagaming.top",
-              components.path == "/log",
-              let pageItem = components.queryItems?.first(where: { $0.name == "page" }),
-              pageItem.value == "test" else {
+        guard let baseURL = URL(string: BASE_URL),
+              url.host == baseURL.host,
+              url.path == baseURL.path else {
             return false
         }
         return true
@@ -22,20 +28,28 @@ class NetworkManager: ObservableObject {
     
     /// Начальный URL для проверки при запуске приложения с FCM токеном
     static func getInitialURL(fcmToken: String) -> URL {
-        var components = URLComponents(string: "https://naskilagaming.top/log")!
-        components.queryItems = [
-            URLQueryItem(name: "page", value: "test"),
-            URLQueryItem(name: "fcm", value: fcmToken)
-        ]
-        return components.url!
+        guard var components = URLComponents(string: BASE_URL) else {
+            fatalError("Invalid BASE_URL: \(BASE_URL)")
+        }
+        
+        // Добавляем FCM токен как параметр
+        var queryItems = components.queryItems ?? []
+        queryItems.append(URLQueryItem(name: "fcm", value: fcmToken))
+        components.queryItems = queryItems
+        
+        guard let url = components.url else {
+            fatalError("Failed to create URL with FCM token")
+        }
+        
+        return url
     }
     
     /// Базовый URL без FCM токена (для обратной совместимости)
-    static let initialURL = URL(string: "https://naskilagaming.top/log?page=test")!
-    
-    init(storage: UserDefaults = .standard) {
-        self.storage = storage
-        loadProvenURL()
+    static var initialURL: URL {
+        guard let url = URL(string: BASE_URL) else {
+            fatalError("Invalid BASE_URL: \(BASE_URL)")
+        }
+        return url
     }
     
     func checkURL(_ url: URL) {
