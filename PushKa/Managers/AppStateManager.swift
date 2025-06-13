@@ -31,6 +31,7 @@ final class AppStateManager: ObservableObject {
                 }
                 
                 // Проверяем начальный URL с FCM токеном
+                // Новая логика автоматически отправляет только новые токены
                 let shouldShowWebView = try await webManager.checkInitialURL()
                 
                 if shouldShowWebView {

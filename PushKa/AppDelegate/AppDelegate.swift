@@ -98,10 +98,32 @@ extension AppDelegate: MessagingDelegate {
         }
         
         print("🔥 FCM Token received: \(token)")
+        print("🔍 Token length: \(token.count) chars")
+        print("🔍 Timestamp: \(Date())")
+        
+        // Проверяем изменился ли токен
+        let previousToken = FCMManager.shared.fcmToken
+        let isTokenChanged = previousToken != token
+        
+        if isTokenChanged {
+            if let prev = previousToken {
+                print("🔄 Token CHANGED!")
+                print("🔄 Previous: \(prev)")
+                print("🔄 New: \(token)")
+            } else {
+                print("🆕 First time receiving token")
+            }
+        } else {
+            print("✅ Same token as before")
+        }
         
         // Сохраняем токен в FCMManager
-        // Отправка на сервер происходит в NetworkManager.checkInitialURL()
         FCMManager.shared.setToken(token)
+        
+        // ✅ ВАЖНО: Убрали автоматическую отправку отсюда!
+        // Отправка токена происходит ТОЛЬКО через AppStateManager.checkInitialURL()
+        // Это исключает дублирование запросов
+        print("📋 Token saved to FCMManager, sending will be handled by AppStateManager")
     }
 }
 
